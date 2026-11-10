@@ -1,0 +1,45 @@
+import time
+import board
+import busio
+import digitalio
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
+
+# --- Hardware Configuration ---
+# Set up LED on GPIO 16 (BCM 16)
+led = digitalio.DigitalInOut(board.D16)
+led.direction = digitalio.Direction.OUTPUT
+
+# Initialize I2C bus and ADS1115 ADC
+i2c = busio.I2C(board.SCL, board.SDA)
+ads = ADS.ADS1115(i2c)
+
+# Create single-ended input on channel 0 (A0 on the ADS1115)
+ldr_channel = AnalogIn(ads, 0)
+
+# Define a threshold for "darkness". 
+# (Adjust this value based on your room's baseline lighting)
+DARK_THRESHOLD = 15000 
+
+try:
+    print("Starting LDR reading. Press Ctrl+C to exit.")
+    while True:
+        # Read the raw analog value and the corresponding voltage
+        light_value = ldr_channel.value
+        voltage = ldr_channel.voltage
+        
+        print(f"Raw Value: {light_value:>5} | Voltage: {voltage:>5.2f}V")
+        
+        # Turn on the LED if the light level drops below the threshold
+        if light_value < DARK_THRESHOLD:
+            led.value = True
+            print("Status: Dark - LED ON")
+        else:
+            led.value = False
+            print("Status: Bright - LED OFF")
+            
+        time.sleep(0.5)
+
+except KeyboardInterrupt:
+    print("\nExiting program...")
+    led.value = False # Safely turn off the LED on exit
